@@ -3,15 +3,15 @@
     'use strict';
 
     /* 1. ПЛАВНЫЙ СКРОЛЛ К #PROGRAMS */
-    var scrollToBtn = document.querySelector('[data-scroll-to-programs]');
-    if (scrollToBtn) {
-        scrollToBtn.addEventListener('click', function () {
+    var scrollToBtns = document.querySelectorAll('[data-scroll-to-programs]');
+    scrollToBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
             var target = document.querySelector('#programs');
             if (target) {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         });
-    }
+    });
 
     /* 2. МОДАЛЬНОЕ ОКНО */
     var overlay = document.getElementById('modalOverlay');
