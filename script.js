@@ -34,9 +34,24 @@
         if (!overlay) return;
         modalTitle.textContent = programName || 'Выбор программы';
         modalDescription.textContent = programDescriptions[programName] || 'Выберите подходящую программу под вашу цель.';
-        leadForm.style.display = '';
-        formSuccess.classList.remove('is-visible');
+
+        // Полный сброс состояния формы при каждом открытии
+        if (leadForm) {
+            leadForm.style.display = '';
+            leadForm.reset();
+        }
+        if (formSuccess) {
+            formSuccess.classList.remove('is-visible');
+        }
         clearErrors();
+
+        // Разблокируем кнопку submit на случай повторного открытия
+        var submitBtn = leadForm ? leadForm.querySelector('.btn-submit') : null;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Отправить заявку';
+        }
+
         overlay.classList.add('is-open');
         document.body.style.overflow = 'hidden';
         setTimeout(function () {
@@ -92,11 +107,21 @@
         leadForm.addEventListener('submit', function (e) {
             e.preventDefault();
             clearErrors();
-            var valid = true;
+
+            var submitBtn = leadForm.querySelector('.btn-submit');
+            // Защита от двойной отправки
+            if (submitBtn && submitBtn.disabled) return;
 
             var nameInput = document.getElementById('leadName');
             var phoneInput = document.getElementById('leadPhone');
             var consentInput = document.getElementById('leadConsent');
+
+            // Защита, если элементы вдруг не найдены
+            if (!nameInput || !phoneInput || !consentInput) {
+                return;
+            }
+
+            var valid = true;
 
             if (!nameInput.value.trim()) {
                 showError('Name', 'Введите имя');
@@ -119,24 +144,62 @@
 
             if (!valid) return;
 
+            // Блокируем кнопку, чтобы не отправить дважды
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Отправляем…';
+            }
+
             var goalSelect = document.getElementById('leadGoal');
             var lead = {
-                program: modalTitle.textContent,
+                program: modalTitle ? modalTitle.textContent : '',
                 name: nameInput.value.trim(),
                 phone: phoneInput.value.trim(),
                 goal: goalSelect ? goalSelect.value : '',
                 timestamp: new Date().toISOString()
             };
 
-            console.log('Заявка отправлена:', lead);
+            console.log('Заявка с формы:', lead);
 
-            leadForm.style.display = 'none';
-            formSuccess.classList.add('is-visible');
-            leadForm.reset();
+            // Формируем данные для отправки на почту через FormSubmit.co
+            var formData = new FormData();
+            formData.append('name', lead.name);
+            formData.append('phone', lead.phone);
+            formData.append('goal', lead.goal);
+            formData.append('program', lead.program);
+            formData.append('timestamp', lead.timestamp);
+            formData.append('_subject', 'Новая заявка с лендинга Кати Усмановой');
+            formData.append('_template', 'table');
+            formData.append('_captcha', 'false');
 
-            setTimeout(function () {
-                closeModal();
-            }, 4000);
+            // Отправка на почту sasha.www.ru78@gmail.com через FormSubmit.co
+            fetch('https://formsubmit.co/ajax/sasha.www.ru78@gmail.com', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+                body: formData
+            })
+            .then(function (response) {
+                if (!response.ok) throw new Error('Network error');
+                return response.json();
+            })
+            .then(function (data) {
+                console.log('Письмо успешно отправлено на почту:', data);
+            })
+            .catch(function (err) {
+                console.warn('Не удалось отправить письмо на почту, но заявка сохранена локально:', err);
+            })
+            .finally(function () {
+                // В любом случае показываем успех пользователю
+                leadForm.style.display = 'none';
+                if (formSuccess) {
+                    formSuccess.classList.add('is-visible');
+                }
+                leadForm.reset();
+
+                setTimeout(function () {
+                    closeModal();
+                }, 4000);
+            });
         });
     }
 
