@@ -751,6 +751,12 @@ img {
     margin-top: 4px;
 }
 
+.btn-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .form-success {
     display: none;
     margin-top: 14px;
